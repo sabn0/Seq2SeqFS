@@ -8,10 +8,10 @@ class AutomaticTransformer(nn.Module):
     def __init__(self,
                  embedding_dim: int,
                  num_heads: int,
-                 num_encoder_blocks: int,
-                 dim_ff: int,
+                 N_encoder_blocks: int,
+                 ff_dim: int,
                  device: torch.device,
-                 num_decoder_blocks: int,
+                 N_decoder_blocks: int,
                  src_vocab_size: int,
                  src_max_size: int,
                  trg_vocab_size: int,
@@ -22,8 +22,10 @@ class AutomaticTransformer(nn.Module):
                  ):
         super(AutomaticTransformer, self).__init__()
         assert embedding_dim % num_heads == 0, "num_heads cannot be divided by embedding dimension"
-        assert num_encoder_blocks > 0, "invalid number of encoder blocks requested"
-        assert num_decoder_blocks > 0, "invalid number of decoder blocks requested"
+        assert N_encoder_blocks > 0, "invalid number of encoder blocks requested"
+        assert N_decoder_blocks > 0, "invalid number of decoder blocks requested"
+
+        self.device = device
 
         self.src_embeddings = nn.Embedding(src_vocab_size, embedding_dim=embedding_dim)
         self.src_positional = nn.Embedding(src_max_size, embedding_dim=embedding_dim)
@@ -33,9 +35,9 @@ class AutomaticTransformer(nn.Module):
         self.transformer = nn.Transformer(
             d_model=embedding_dim,
             nhead=num_heads,
-            num_encoder_layers=num_encoder_blocks,
-            num_decoder_layers=num_decoder_blocks,
-            dim_feedforward=dim_ff,
+            num_encoder_layers=N_encoder_blocks,
+            num_decoder_layers=N_decoder_blocks,
+            dim_feedforward=ff_dim,
             dropout=dropout,
             batch_first=batch_first,
             device=device,
@@ -46,8 +48,8 @@ class AutomaticTransformer(nn.Module):
 
     def forward(self, src, trg):
 
-        src = self.src_positional(torch.arange(src.shape[1]).expand(src.shape[0], src.shape[1])) + self.src_embeddings(src)
-        trg = self.trg_positional(torch.arange(trg.shape[1]).expand(trg.shape[0], trg.shape[1])) + self.trg_embeddings(trg)
+        src = self.src_positional(torch.arange(src.shape[1]).expand(src.shape[0], src.shape[1]).to(self.device)) + self.src_embeddings(src)
+        trg = self.trg_positional(torch.arange(trg.shape[1]).expand(trg.shape[0], trg.shape[1]).to(self.device)) + self.trg_embeddings(trg)
         out = self.transformer(src, trg)
 
         # move to linear from output -> (batch_size, trg_len, trg_vocab)
@@ -55,3 +57,5 @@ class AutomaticTransformer(nn.Module):
         predictions = out.argmax(dim=2)
 
         return out, predictions
+
+

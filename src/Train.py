@@ -6,7 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 from src.Utils import LoadDataSimple, PytorchCustomLoader
-from src.TransformerModel import AutomaticTransformer
+from src.TransformerModelAuto import AutomaticTransformer
+from src.TransformerModelManual import ManualTransformer
 from sacrebleu.metrics import BLEU
 
 def calculate_BLEU(
@@ -165,18 +166,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-s', '--SourcePath', required=True, type=str, help='path to source file')
     parser.add_argument('-t', '--TargetPath', required=True, type=str, help='path to target file')
-    parser.add_argument('-d', '--Debug', default=False)
+    parser.add_argument('-d', '--Debug', default=0, type=int)
+    parser.add_argument('-a', '--AutomaticModel', default=1, type=int)
     args = parser.parse_args()
 
     # hyper-parameters
     max_iter = 3
     lr = 0.001
+    dropout = 0.0
     batch_size = 1
     max_vocab = int(1e03)
     embedding_dim = 256
     num_heads = 4
-    n_encoder_blocks = 1
-    n_decoder_blocks = 1
+    n_encoder_blocks = 2
+    n_decoder_blocks = 2
     feed_forward_size = 32
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     symbol_kwargs = {'SOS': '<SOS>', 'EOS': '<EOS>', 'UNK': '<UNK>', 'PAD': '<PAD>'}
@@ -218,18 +221,23 @@ def main():
     test_loader = data.DataLoader(dataset=test_loader, batch_size=batch_size, shuffle=False)
 
     # initialize model
-    model = AutomaticTransformer(
-        embedding_dim=embedding_dim,
-        num_heads=num_heads,
-        num_encoder_blocks=n_encoder_blocks,
-        num_decoder_blocks=n_decoder_blocks,
-        dim_ff=feed_forward_size,
-        device=device,
-        src_vocab_size=len(s2i),
-        src_max_size=max_src_len,
-        trg_vocab_size=len(t2i),
-        trg_max_size=max_trg_len
-    )
+    model_kwargs = {
+        'embedding_dim': embedding_dim,
+        'num_heads': num_heads,
+        'N_encoder_blocks': n_encoder_blocks,
+        'N_decoder_blocks': n_decoder_blocks,
+        'ff_dim': feed_forward_size,
+        'device': device,
+        'dropout': dropout,
+        'src_vocab_size': len(s2i),
+        'src_max_size': max_src_len,
+        'trg_vocab_size': len(t2i),
+        'trg_max_size': max_trg_len
+    }
+    if args.AutomaticModel:
+        model = AutomaticTransformer(**model_kwargs)
+    else:
+        model = ManualTransformer(**model_kwargs)
 
     # train model
     history = train(
@@ -250,6 +258,8 @@ def main():
     test_bleu = test(test_loader, model=model, device=device, int2target=i2t)
     print("bleu on test set: {}".format(test_bleu))
 
+    # add manual transformers
+    # add different vocabs (bpe algorithm)
 
 
 if __name__ == "__main__":
