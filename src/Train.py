@@ -1,6 +1,8 @@
 
 # import packages
 import argparse
+import pickle
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -96,6 +98,7 @@ def train(
         model: nn.Module,
         int2target: dict,
         device: torch.device,
+        checkpoint_path: str
 ) -> tuple:
 
     # set optimizer and loss
@@ -156,7 +159,7 @@ def train(
         if bleu_dev > best_bleu:
             best_bleu = bleu_dev
             checkpoint_dict = {'model': model.state_dict(), 'criterion': criterion.state_dict()}
-            torch.save(checkpoint_dict, 'checkpoint')
+            torch.save(checkpoint_dict, checkpoint_path)
 
     return (train_loss, train_bleu, dev_loss, dev_bleu)
 
@@ -171,7 +174,7 @@ def main():
     args = parser.parse_args()
 
     # hyper-parameters
-    max_iter = 3
+    max_iter = 1
     lr = 0.001
     dropout = 0.0
     batch_size = 1
@@ -199,10 +202,9 @@ def main():
     # split to sets
     assert len(targets) == len(sources)
     num_examples = len(targets)
-    size_train, size_dev = int(num_examples*.8), int(num_examples*.1)
+    size_train = int(num_examples*.85)
     train_targets, train_sources = targets[:size_train], sources[:size_train]
-    dev_targets, dev_sources = targets[size_train:(size_train+size_dev)], sources[size_train:(size_train+size_dev)]
-    test_targets, test_sources = targets[(size_train+size_dev):], sources[(size_train+size_dev):]
+    dev_targets, dev_sources = targets[size_train:], sources[size_train:]
 
     # load to pytorch tensors
     train_loader = PytorchCustomLoader(
@@ -214,11 +216,6 @@ def main():
         sources=dev_sources, targets=dev_targets, sources2int=s2i, targets2int=t2i, **symbol_kwargs
     )
     dev_loader = data.DataLoader(dataset=dev_loader, batch_size=batch_size, shuffle=True)
-
-    test_loader = PytorchCustomLoader(
-        sources=test_sources, targets=test_targets, sources2int=s2i, targets2int=t2i, **symbol_kwargs
-    )
-    test_loader = data.DataLoader(dataset=test_loader, batch_size=batch_size, shuffle=False)
 
     # initialize model
     model_kwargs = {
@@ -239,6 +236,17 @@ def main():
     else:
         model = ManualTransformer(**model_kwargs)
 
+    # save kwargs used (for loading)
+    checkpoint_path = os.path.join(os.getcwd().rsplit('/', 1)[0], 'checkpoints')
+    if not os.path.isdir(checkpoint_path):
+        os.mkdir(checkpoint_path)
+    with open(os.path.join(checkpoint_path, 'model_kwargs'), 'wb+') as f:
+        pickle.dump(model_kwargs, f)
+    environment_kwargs = {"batch_size": batch_size, "s2i": s2i, "i2s": i2s, "t2i": t2i, "i2t":i2t}
+    environment_kwargs.update(symbol_kwargs)
+    with open(os.path.join(checkpoint_path, 'env_kwargs'), 'wb+') as f:
+        pickle.dump(environment_kwargs, f)
+
     # train model
     history = train(
         train_loader=train_loader,
@@ -247,19 +255,9 @@ def main():
         device=device,
         model=model,
         max_iter=max_iter,
-        int2target=i2t
+        int2target=i2t,
+        checkpoint_path=os.path.join(checkpoint_path, 'checkpoint')
     )
-
-    # test model
-    # load saved model
-    # should be moved to a different script
-    checkpoint = torch.load('checkpoint')
-    model.load_state_dict(checkpoint['model'])
-    test_bleu = test(test_loader, model=model, device=device, int2target=i2t)
-    print("bleu on test set: {}".format(test_bleu))
-
-    # add manual transformers
-    # add different vocabs (bpe algorithm)
 
 
 if __name__ == "__main__":

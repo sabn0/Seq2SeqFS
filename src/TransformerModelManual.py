@@ -198,7 +198,6 @@ class ManualTransformer(nn.Module):
         # linear and softmax
         self.out_lin = nn.Linear(in_features=embedding_dim, out_features=trg_vocab_size)
 
-
     def forward(self, src, trg):
 
         # src is of shape: (batch_size, src_length)
