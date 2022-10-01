@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
-from src.Utils import LoadDataSimple, PytorchCustomLoader
+from src.Utils import LoadDataSimple, LoadDataBPE, PytorchCustomLoader
 from src.TransformerModelAuto import AutomaticTransformer
 from src.TransformerModelManual import ManualTransformer
 from sacrebleu.metrics import BLEU
@@ -171,6 +171,7 @@ def main():
     parser.add_argument('-t', '--TargetPath', required=True, type=str, help='path to target file')
     parser.add_argument('-d', '--Debug', default=0, type=int)
     parser.add_argument('-a', '--AutomaticModel', default=1, type=int)
+    parser.add_argument('-b', '--BPE', default=1, type=int)
     args = parser.parse_args()
 
     # hyper-parameters
@@ -178,26 +179,34 @@ def main():
     lr = 0.001
     dropout = 0.0
     batch_size = 1
-    max_vocab = int(1e03)
+    max_vocab = 100
     embedding_dim = 256
     num_heads = 4
     n_encoder_blocks = 2
     n_decoder_blocks = 2
     feed_forward_size = 32
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    symbol_kwargs = {'SOS': '<SOS>', 'EOS': '<EOS>', 'UNK': '<UNK>', 'PAD': '<PAD>'}
+    symbol_kwargs = {'SOS': '<SOS>', 'EOS': '<EOS>', 'UNK': '<UNK>', 'PAD': '<PAD>', 'EOW': '</w>', 'EOC': '</c>'}
+
+    # choose simple or BPE tokenizer
+    if args.BPE:
+        source_loader = LoadDataBPE(file_path=args.SourcePath, debug=args.Debug)
+        target_loader = LoadDataBPE(file_path=args.TargetPath, debug=args.Debug)
+    else:
+        source_loader = LoadDataSimple(file_path=args.SourcePath, debug=args.Debug)
+        target_loader = LoadDataSimple(file_path=args.TargetPath, debug=args.Debug)
 
     # load source sentences
-    source_loader = LoadDataSimple(file_path=args.SourcePath, debug=args.Debug)
     sources = source_loader.readFile()
-    max_src_len = source_loader.getMaxSentenceLength()
     s2i, i2s = source_loader.createVocab(max_vocab=max_vocab, **symbol_kwargs)
+    sources = source_loader.tokenize(w2i=s2i, sentences=sources, eow=symbol_kwargs['EOW']).getTokenizedSentences()
+    max_src_len = source_loader.getMaxSentenceLength()
 
     # load target sentences
-    target_loader = LoadDataSimple(file_path=args.TargetPath, debug=args.Debug)
     targets = target_loader.readFile()
-    max_trg_len = target_loader.getMaxSentenceLength()
     t2i, i2t = target_loader.createVocab(max_vocab=max_vocab, **symbol_kwargs)
+    targets = target_loader.tokenize(w2i=t2i, sentences=targets, eow=symbol_kwargs['EOW']).getTokenizedSentences()
+    max_trg_len = target_loader.getMaxSentenceLength()
 
     # split to sets
     assert len(targets) == len(sources)
@@ -208,12 +217,12 @@ def main():
 
     # load to pytorch tensors
     train_loader = PytorchCustomLoader(
-        sources=train_sources, targets=train_targets, sources2int=s2i, targets2int=t2i, **symbol_kwargs
+        sources=train_sources, targets=train_targets, bpe_tokenizer=bool(args.BPE), sources2int=s2i, targets2int=t2i, **symbol_kwargs
     )
     train_loader = data.DataLoader(dataset=train_loader, batch_size=batch_size, shuffle=True)
 
     dev_loader = PytorchCustomLoader(
-        sources=dev_sources, targets=dev_targets, sources2int=s2i, targets2int=t2i, **symbol_kwargs
+        sources=dev_sources, targets=dev_targets, bpe_tokenizer=bool(args.BPE), sources2int=s2i, targets2int=t2i, **symbol_kwargs
     )
     dev_loader = data.DataLoader(dataset=dev_loader, batch_size=batch_size, shuffle=True)
 

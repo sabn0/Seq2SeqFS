@@ -47,7 +47,14 @@ def main():
     # load target sentences
     target_loader = LoadDataSimple(file_path=args.TargetPath, debug=args.Debug)
     targets = target_loader.readFile()
-    symbol_kwargs = {'SOS': env_kwargs['SOS'], 'EOS': env_kwargs['EOS'], 'UNK': env_kwargs['UNK'], 'PAD': env_kwargs['PAD']}
+    symbol_kwargs = {
+        'SOS': env_kwargs['SOS'],
+        'EOS': env_kwargs['EOS'],
+        'UNK': env_kwargs['UNK'],
+        'PAD': env_kwargs['PAD'],
+        'EOW': env_kwargs['EOW'],
+        'EOC': env_kwargs['EOC']
+    }
     test_loader = PytorchCustomLoader(
         sources=sources, targets=targets, sources2int=env_kwargs['s2i'], targets2int=env_kwargs['t2i'], **symbol_kwargs
     )

@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 
 # a self implementation of attention is all you need
-# assisted
+# partially assisted by https://github.com/aladdinpersson/Machine-Learning-Collection
+
 
 class ScaledDotProductAttention(nn.Module):
     def __init__(self):
