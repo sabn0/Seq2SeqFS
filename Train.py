@@ -7,7 +7,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
-from src.Utils import LoadDataSimple, LoadDataBPE, PytorchCustomLoader
+from src.LoadDataBPE import LoadDataBPE
+from src.LoadDataSimple import LoadDataSimple
+from src.LoadDataBase import PytorchCustomLoader
 from src.TransformerModelAuto import AutomaticTransformer
 from src.TransformerModelManual import ManualTransformer
 from sacrebleu.metrics import BLEU
@@ -164,7 +166,6 @@ def train(
     return (train_loss, train_bleu, dev_loss, dev_bleu)
 
 
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-s', '--SourcePath', required=True, type=str, help='path to source file')
@@ -175,18 +176,25 @@ def main():
     args = parser.parse_args()
 
     # hyper-parameters
-    max_iter = 1
+    max_iter = 3
     lr = 0.001
     dropout = 0.0
     batch_size = 1
-    max_vocab = 100
+    max_vocab = 1000
     embedding_dim = 256
-    num_heads = 4
-    n_encoder_blocks = 2
-    n_decoder_blocks = 2
+    num_heads = 8
+    n_encoder_blocks = 4
+    n_decoder_blocks = 4
     feed_forward_size = 32
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    symbol_kwargs = {'SOS': '<SOS>', 'EOS': '<EOS>', 'UNK': '<UNK>', 'PAD': '<PAD>', 'EOW': '</w>', 'EOC': '</c>'}
+    symbol_kwargs = {
+        'SOS': '<SOS>',
+        'EOS': '<EOS>',
+        'UNK': '<UNK>',
+        'PAD': '<PAD>',
+        'EOW': '</w>',
+        'EOC': '</c>'
+    }
 
     # choose simple or BPE tokenizer
     if args.BPE:

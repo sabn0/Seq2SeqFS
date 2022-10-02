@@ -6,8 +6,10 @@ import torch.utils.data as data
 import argparse
 import os
 import pickle
-from src.Train import test
-from src.Utils import LoadDataSimple, PytorchCustomLoader
+from Train import test
+from src.LoadDataBPE import LoadDataBPE
+from src.LoadDataSimple import LoadDataSimple
+from src.LoadDataBase import PytorchCustomLoader
 from src.TransformerModelManual import ManualTransformer
 from src.TransformerModelAuto import AutomaticTransformer
 
@@ -18,6 +20,7 @@ def main():
     parser.add_argument('-t', '--TargetPath', required=True, type=str, help='path to target file')
     parser.add_argument('-d', '--Debug', default=0, type=int)
     parser.add_argument('-a', '--AutomaticModel', default=1, type=int)
+    parser.add_argument('-b', '--BPE', default=1, type=int)
     args = parser.parse_args()
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -40,13 +43,6 @@ def main():
     checkpoint = torch.load(checkpoint_file)
     model.load_state_dict(checkpoint['model'])
 
-    # load source sentences
-    source_loader = LoadDataSimple(file_path=args.SourcePath, debug=args.Debug)
-    sources = source_loader.readFile()
-
-    # load target sentences
-    target_loader = LoadDataSimple(file_path=args.TargetPath, debug=args.Debug)
-    targets = target_loader.readFile()
     symbol_kwargs = {
         'SOS': env_kwargs['SOS'],
         'EOS': env_kwargs['EOS'],
@@ -55,6 +51,23 @@ def main():
         'EOW': env_kwargs['EOW'],
         'EOC': env_kwargs['EOC']
     }
+
+    # choose simple or BPE tokenizer
+    if args.BPE:
+        source_loader = LoadDataBPE(file_path=args.SourcePath, debug=args.Debug)
+        target_loader = LoadDataBPE(file_path=args.TargetPath, debug=args.Debug)
+    else:
+        source_loader = LoadDataSimple(file_path=args.SourcePath, debug=args.Debug)
+        target_loader = LoadDataSimple(file_path=args.TargetPath, debug=args.Debug)
+
+    # load source sentences
+    sources = source_loader.readFile()
+    sources = source_loader.tokenize(w2i=env_kwargs['s2i'], sentences=sources, eow=symbol_kwargs['EOW']).getTokenizedSentences()
+
+    # load target sentences
+    targets = target_loader.readFile()
+    targets = target_loader.tokenize(w2i=env_kwargs['t2i'], sentences=targets, eow=symbol_kwargs['EOW']).getTokenizedSentences()
+
     test_loader = PytorchCustomLoader(
         sources=sources, targets=targets, sources2int=env_kwargs['s2i'], targets2int=env_kwargs['t2i'], **symbol_kwargs
     )
