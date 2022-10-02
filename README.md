@@ -1,6 +1,7 @@
 # PMTG
 This program runs a simple transformer for machine translation.
 Data can be tokenized using space delimiter and UNK words, or with the [BPE algorithm](https://arxiv.org/abs/1508.07909).
+Written as a self-learning experience with transformers and the BPE method.
 
 ## Data
 The program translates from a source language to a target language, supplied in two plain text files with the same number of rows.\
