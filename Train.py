@@ -14,6 +14,7 @@ from src.TransformerModelAuto import AutomaticTransformer
 from src.TransformerModelManual import ManualTransformer
 from sacrebleu.metrics import BLEU
 
+
 def calculate_BLEU(
         targets: list,
         predictions: list,
