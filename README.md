@@ -27,5 +27,5 @@ The program evaluates based on BLEU score.
 The BPE algorithm was self-implemented following instructions in the paper: [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909).
 The manual transformer was implemented following instructions in the paper: [Attention Is All You Need](https://arxiv.org/abs/1706.03762), and partially assisted by an implementation from [here](https://github.com/aladdinpersson/Machine-Learning-Collection).
 
-\
-#### Under Apache License 2.0
+
+#### Released under Apache License 2.0
