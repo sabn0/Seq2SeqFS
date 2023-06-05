@@ -114,6 +114,7 @@ def train(
 
     # best bleu
     best_bleu = 0
+    print("starts training...")
 
     for i in range(max_iter):
 
@@ -181,11 +182,11 @@ def main():
     lr = 0.001
     dropout = 0.0
     batch_size = 1
-    max_vocab = 1000
+    max_vocab = 10 #1000
     embedding_dim = 256
-    num_heads = 8
-    n_encoder_blocks = 4
-    n_decoder_blocks = 4
+    num_heads = 2 #8
+    n_encoder_blocks = 2 #4
+    n_decoder_blocks = 2 #4
     feed_forward_size = 32
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     symbol_kwargs = {
@@ -255,7 +256,7 @@ def main():
         model = ManualTransformer(**model_kwargs)
 
     # save kwargs used (for loading)
-    checkpoint_path = os.path.join(os.getcwd().rsplit('/', 1)[0], 'checkpoints')
+    checkpoint_path = os.path.join(os.getcwd(), 'checkpoints')
     if not os.path.isdir(checkpoint_path):
         os.mkdir(checkpoint_path)
     with open(os.path.join(checkpoint_path, 'model_kwargs'), 'wb+') as f:

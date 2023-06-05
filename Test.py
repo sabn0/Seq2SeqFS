@@ -26,7 +26,7 @@ def main():
 
     # test model
     # load saved model
-    checkpoint_path = os.path.join(os.getcwd().rsplit('/', 1)[0], 'checkpoints')
+    checkpoint_path = os.path.join(os.getcwd(), 'checkpoints')
     checkpoint_file = os.path.join(checkpoint_path, 'checkpoint')
     model_kwargs_file = os.path.join(checkpoint_path, 'model_kwargs')
     env_kwargs_file = os.path.join(checkpoint_path, 'env_kwargs')
@@ -69,7 +69,7 @@ def main():
     targets = target_loader.tokenize(w2i=env_kwargs['t2i'], sentences=targets, eow=symbol_kwargs['EOW']).getTokenizedSentences()
 
     test_loader = PytorchCustomLoader(
-        sources=sources, targets=targets, sources2int=env_kwargs['s2i'], targets2int=env_kwargs['t2i'], **symbol_kwargs
+        sources=sources, targets=targets, bpe_tokenizer=bool(args.BPE), sources2int=env_kwargs['s2i'], targets2int=env_kwargs['t2i'], **symbol_kwargs
     )
     test_loader = data.DataLoader(dataset=test_loader, batch_size=env_kwargs['batch_size'], shuffle=False)
 
