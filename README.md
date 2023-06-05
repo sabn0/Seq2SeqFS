@@ -1,4 +1,4 @@
-# Translation with attention and RNNs
+# Seq2Seq with attention and RNNs
 
 ## Software
 python 3.8, pytorch 1.11.
